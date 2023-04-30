@@ -23,6 +23,9 @@ from click import echo, confirm
 from slugify import slugify
 from humanize import naturalsize
 from tqdm import tqdm
+import tkinter as tk
+from tkinter import filedialog
+#import os
 
 
 class AntenatiDownloader:
@@ -194,8 +197,48 @@ class AntenatiDownloader:
         print(f'Done. Total size: {naturalsize(self.gallery_size)}')
 
 
-def main() -> None:
-    """Main"""
+class MyGUI:
+    def __init__(self,args):
+        self.root = tk.Tk()
+        self.root.title("Change Directory")
+        self.url = tk.Entry(self.root, width=50)
+        self.url_label = tk.Label(self.root, text="Enter URL:")
+        self.folder_button = tk.Button(self.root, text="Select Directory", command=self.select_directory)
+        self.chdir_button = tk.Button(self.root, text="Change Directory", command=self.change_directory)
+        self.dir_path = ""
+        self.args = args
+
+    def run(self):
+        self.url_label.pack()
+        self.url.pack()
+        self.folder_button.pack()
+        self.chdir_button.pack()
+        self.root.mainloop()
+
+    def select_directory(self):
+        self.dir_path = filedialog.askdirectory()
+        print("Selected directory:", self.dir_path)
+
+    def change_directory(self):
+        url = self.url.get()
+        if not url:
+            print("Please enter a URL.")
+            return
+        if not self.dir_path:
+            print("Please select a directory.")
+            return
+        chdir(self.dir_path)
+        downloader = AntenatiDownloader(url, self.args.first, self.args.last)
+        downloader.print_gallery_info()
+        downloader.check_dir()
+        downloader.run(self.args.nthreads, self.args.nconn)
+        downloader.print_summary()
+
+        self.root.destroy()
+        print("Directory changed successfully.")
+        
+
+def main():
 
     # Parse arguments
     parser = ArgumentParser(
@@ -203,7 +246,7 @@ def main() -> None:
         epilog=__copyright__,
         formatter_class=ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('url', metavar='URL', type=str, help='url of the gallery page')
+    #parser.add_argument('url', metavar='URL', type=str, help='url of the gallery page')
     parser.add_argument('-n', '--nthreads', type=int, help='max n. of threads', default=8)
     parser.add_argument('-c', '--nconn', type=int, help='max n. of connections', default=4)
     parser.add_argument('-f', '--first', type=int, help='first image to download', default=0)
@@ -211,20 +254,9 @@ def main() -> None:
     parser.add_argument('-v', '--version', action='version', version=__version__)
     args = parser.parse_args()
 
-    # Initialize
-    downloader = AntenatiDownloader(args.url, args.first, args.last)
-
-    # Print gallery info
-    downloader.print_gallery_info()
-
-    # Check if directory already exists and chdir to it
-    downloader.check_dir()
-
-    # Run
-    downloader.run(args.nthreads, args.nconn)
-
-    # Print summary
-    downloader.print_summary()
+    # Create the GUI instance and run it
+    my_gui = MyGUI(args)
+    my_gui.run()
 
 
 if __name__ == '__main__':
